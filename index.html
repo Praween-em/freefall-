@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Fall Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #1a1a40, #0a0a2a);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            border: 1px solid #2a4b8d;
+        }
+        
+        h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+            color: #4af;
+            text-shadow: 0 0 15px rgba(0, 150, 255, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            color: #aad;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        
+        .simulation-section {
+            flex: 1;
+            min-width: 300px;
+            max-width: 800px; /* Added for better layout */
+            margin: 0 auto; /* Center the single section */
+            background: rgba(0, 0, 30, 0.6);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #2a4b8d;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .simulation-section h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #6df;
+            border-bottom: 2px solid #2a4b8d;
+            padding-bottom: 10px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px; /* Increased height for freefall */
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            border: 2px solid #2a4b8d;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .controls { margin-bottom: 20px; }
+        .control-group { margin-bottom: 15px; }
+        .control-group label { display: block; margin-bottom: 5px; color: #ccd; }
+        .slider-container { display: flex; align-items: center; }
+        
+        .slider-container input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #2a4b8d;
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4af;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 150, 255, 0.5);
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a40;
+            color: #fff;
+            border: 1px solid #2a4b8d;
+            border-radius: 5px;
+        }
+        
+        .value-display { min-width: 80px; text-align: right; color: #6df; font-weight: bold; margin-left: 10px; }
+        .button-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { flex: 1; background: linear-gradient(to bottom, #2a4b8d, #1a3a7d); color: white; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s; box-shadow: 0 0 10px rgba(0, 0, 0, 0.3); }
+        button:hover { background: linear-gradient(to bottom, #3a5b9d, #2a4a8d); box-shadow: 0 0 15px rgba(0, 150, 255, 0.4); }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .metrics { background: rgba(0, 20, 40, 0.5); padding: 15px; border-radius: 10px; margin-top: 20px; }
+        .metric { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .metric .label { color: #ccd; }
+        .metric .value { color: #6df; font-weight: bold; }
+        .explanation { background: rgba(0, 10, 30, 0.5); padding: 15px; border-radius: 10px; margin-top: 20px; font-size: 14px; line-height: 1.6; }
+        .explanation h3 { color: #4af; margin-bottom: 10px; }
+        .formula { background: rgba(0, 0, 0, 0.3); padding: 10px; border-radius: 8px; margin: 10px 0; font-family: 'Courier New', monospace; color: #aad; text-align: center; border: 1px solid #2a4b8d; }
+        
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Free Fall & Acceleration</h1>
+        <p class="subtitle">Demonstration of free fall motion under different gravitational accelerations.</p>
+    </div>
+    
+    <div class="container">
+        <div class="simulation-section">
+            <h2>Free Fall & Acceleration due to Gravity</h2>
+            <div class="canvas-container">
+                <canvas id="freefallCanvas"></canvas>
+            </div>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="planet">Planet:</label>
+                    <select id="planet">
+                        <option value="earth">Earth (g = 9.8 m/s²)</option>
+                        <option value="moon">Moon (g = 1.6 m/s²)</option>
+                        <option value="mars">Mars (g = 3.7 m/s²)</option>
+                        <option value="jupiter">Jupiter (g = 24.8 m/s²)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="height">Initial Height</label>
+                    <div class="slider-container">
+                        <input type="range" id="height" min="10" max="200" value="50">
+                        <span class="value-display" id="heightValue">50 m</span>
+                    </div>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="dropBtn">Drop Object</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+            <div class="metrics">
+                <div class="metric"><span class="label">Time:</span><span class="value" id="timeValue">0.00 s</span></div>
+                <div class="metric"><span class="label">Velocity:</span><span class="value" id="velocityValue">0.00 m/s</span></div>
+                <div class="metric"><span class="label">Distance Fallen:</span><span class="value" id="distanceFallenValue">0.00 m</span></div>
+            </div>
+            <div class="explanation">
+                <h3>Free Fall Motion</h3>
+                <p>All objects fall with the same acceleration regardless of mass when air resistance is negligible. The equations of motion under constant acceleration apply:</p>
+                <div class="formula">v = u + gt<br>s = ut + ½gt²<br>v² = u² + 2gs</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('freefallCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const planetEl = document.getElementById('planet');
+        const heightEl = document.getElementById('height');
+        const dropBtn = document.getElementById('dropBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        const gravityMap = { earth: 9.8, moon: 1.6, mars: 3.7, jupiter: 24.8 };
+
+        let state = {
+            height: 50,
+            gravity: 9.8,
+            ball: { y: 0, velocity: 0 },
+            startTime: null,
+            elapsedTime: 0,
+            animationId: null
+        };
+
+        function setCanvasDimensions() {
+            const container = document.querySelector('.canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const groundY = canvas.height * 0.9;
+            ctx.fillStyle = '#663300';
+            ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+
+            const scaleHeight = canvas.height * 0.8;
+            const pixelPerMeter = scaleHeight / state.height;
+            const ballSize = 15;
+            const ballX = canvas.width / 2;
+            const ballY = groundY - (state.height - state.ball.y) * pixelPerMeter;
+
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, ballSize, 0, Math.PI * 2);
+            ctx.fillStyle = '#f4a';
+            ctx.fill();
+        }
+
+        function updateMetrics() {
+            document.getElementById('timeValue').textContent = state.elapsedTime.toFixed(2) + ' s';
+            document.getElementById('velocityValue').textContent = state.ball.velocity.toFixed(2) + ' m/s';
+            document.getElementById('distanceFallenValue').textContent = state.ball.y.toFixed(2) + ' m';
+        }
+
+        function reset() {
+            if (state.animationId) {
+                cancelAnimationFrame(state.animationId);
+                state.animationId = null;
+            }
+
+            state.height = parseInt(heightEl.value);
+            state.gravity = gravityMap[planetEl.value];
+            state.ball = { y: 0, velocity: 0 };
+            state.startTime = null;
+            state.elapsedTime = 0;
+
+            document.getElementById('heightValue').textContent = state.height + ' m';
+            planetEl.disabled = false;
+            heightEl.disabled = false;
+            dropBtn.disabled = false;
+
+            updateMetrics();
+            draw();
+        }
+
+        function start() {
+            if (state.animationId) return;
+
+            state.startTime = Date.now();
+            planetEl.disabled = true;
+            heightEl.disabled = true;
+            dropBtn.disabled = true;
+
+            function animate() {
+                const now = Date.now();
+                state.elapsedTime = (now - state.startTime) / 1000;
+                
+                state.ball.y = 0.5 * state.gravity * state.elapsedTime * state.elapsedTime;
+                state.ball.velocity = state.gravity * state.elapsedTime;
+
+                if (state.ball.y >= state.height) {
+                    state.ball.y = state.height;
+                    // Keep final velocity and time, don't reset them
+                    updateMetrics();
+                    draw();
+                    resetBtn.disabled = false;
+                    cancelAnimationFrame(state.animationId);
+                    state.animationId = null;
+                    return;
+                }
+
+                updateMetrics();
+                draw();
+                state.animationId = requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        window.addEventListener('resize', setCanvasDimensions);
+        heightEl.addEventListener('input', () => {
+             document.getElementById('heightValue').textContent = heightEl.value + ' m';
+             if(!state.animationId) reset();
+        });
+        planetEl.addEventListener('change', reset);
+        dropBtn.addEventListener('click', start);
+        resetBtn.addEventListener('click', reset);
+
+        reset(); // Initial setup
+
+    </script>
+</body>
+</html>
